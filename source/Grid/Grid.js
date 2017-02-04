@@ -437,12 +437,6 @@ export default class Grid extends Component {
     this._calculateChildrenToRender()
   }
 
-  componentWillUnmount () {
-    if (this._disablePointerEventsTimeoutId) {
-      clearTimeout(this._disablePointerEventsTimeoutId)
-    }
-  }
-
   /**
    * @private
    * This method updates scrollLeft/scrollTop in state for the following conditions:
@@ -722,19 +716,25 @@ export default class Grid extends Component {
   _debounceScrollEnded () {
     const { scrollingResetTimeInterval } = this.props
 
-    if (this._disablePointerEventsTimeoutId) {
-      clearTimeout(this._disablePointerEventsTimeoutId)
+    if (!this._scrollLoop) {
+      this._scrollLoop = true
+      const loop = () => {
+        const now = window.performance.now()
+        if (this._lastScroll && (now - this._lastScroll >= scrollingResetTimeInterval)) {
+          this._scrollLoop = false
+          this._debounceScrollEndedCallback()
+        } else {
+          window.requestAnimationFrame(loop)
+        }
+      }
+      // start the loop
+      window.requestAnimationFrame(loop)
     }
 
-    this._disablePointerEventsTimeoutId = setTimeout(
-      this._debounceScrollEndedCallback,
-      scrollingResetTimeInterval
-    )
+    this._lastScroll = window.performance.now()
   }
 
   _debounceScrollEndedCallback () {
-    this._disablePointerEventsTimeoutId = null
-
     const styleCache = this._styleCache
 
     // Reset cell and style caches once scrolling stops.
